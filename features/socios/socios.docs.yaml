@@ -1,0 +1,171 @@
+paths:
+  /api/socios:
+    get:
+      summary: "Recupera la lista completa de asociados."
+      description: "Retorna todos los taxistas de la cooperativa ordenados alfabéticamente por nombre desde la base de datos local de XAMPP."
+      responses:
+        "200":
+          description: "Arreglo de socios obtenido de manera exitosa."
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    cedula_nit:
+                      type: string
+                      example: "11248500"
+                    celular:
+                      type: string
+                      example: "3124567890"
+                    cupo:
+                      type: integer
+                      example: 116
+                    domicilio:
+                      type: string
+                      example: "Barrio Centro, Mocoa"
+                    estado:
+                      type: string
+                      enum: [ACTIVO, INACTIVO]
+                      example: "ACTIVO"
+                    fecha_registro:
+                      type: string
+                      example: "2026-07-05T18:30:00.000Z"
+                    id:
+                      type: integer
+                      example: 1
+                    nombres_apellidos:
+                      type: string
+                      example: "Carlos Mario Benavides"
+                    placa:
+                      type: string
+                      example: "SMR456"
+        "500":
+          description: "Error interno en el pool de conexiones del servidor de la oficina."
+
+    post:
+      summary: "Registra un nuevo socio en el sindicato."
+      description: "Almacena un asociado validando de manera estricta que la cédula, el cupo y la placa no se encuentren duplicados en los libros contables."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - cedula_nit
+                - cupo
+                - nombres_apellidos
+                - placa
+              properties:
+                cedula_nit:
+                  type: string
+                  example: "11248500"
+                celular:
+                  type: string
+                  example: "3124567890"
+                cupo:
+                  type: integer
+                  example: 116
+                domicilio:
+                  type: string
+                  example: "Barrio Centro, Mocoa"
+                nombres_apellidos:
+                  type: string
+                  example: "Carlos Mario Benavides"
+                placa:
+                  type: string
+                  example: "SMR456"
+      responses:
+        "201":
+          description: "Asociado guardado y asentado correctamente en el sistema."
+        "400":
+          description: "Error de validación, faltan parámetros obligatorios en la solicitud."
+        "409":
+          description: "Conflicto - La cédula, el cupo o la placa provistos ya existen en otra terminal vehicular."
+        "500":
+          description: "Error crítico al escribir en la base de datos."
+
+  /api/socios/{cupo}:
+    get:
+      summary: "Localiza un socio por su número de cupo único."
+      description: "Extrae el expediente completo de un vehículo y su conductor utilizando el identificador de cupo de la oficina."
+      parameters:
+        - in: path
+          name: cupo
+          required: true
+          schema:
+            type: integer
+          description: "Número de cupo identificador único del taxi (Ej: 116)." # 🚀 CORREGIDO: Entre comillas dobles para neutralizar los dos puntos
+      responses:
+        "200":
+          description: "Expediente del socio localizado con éxito."
+        "404":
+          description: "El número de cupo solicitado no se encuentra registrado en el sistema."
+        "500":
+          description: "Error interno al procesar la búsqueda."
+
+    put:
+      summary: "Actualiza el expediente de un taxista mediante su cupo."
+      description: "Permite modificar la información residencial, de contacto o el estado administrativo (ACTIVO/INACTIVO) de un cupo operativo."
+      parameters:
+        - in: path
+          name: cupo
+          required: true
+          schema:
+            type: integer
+          description: "Número de cupo inmutable del vehículo a modificar."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                cedula_nit:
+                  type: string
+                  example: "11248500"
+                celular:
+                  type: string
+                  example: "3124567890"
+                domicilio:
+                  type: string
+                  example: "Barrio Miraflores, Mocoa"
+                estado:
+                  type: string
+                  enum: [ACTIVO, INACTIVO]
+                  example: "INACTIVO"
+                nombres_apellidos:
+                  type: string
+                  example: "Carlos Mario Benavides"
+                placa:
+                  type: string
+                  example: "SMR456"
+      responses:
+        "200":
+          description: "Datos del cupo modificados correctamente en la base de datos de XAMPP."
+        "404":
+          description: "No se localizó ningún vehículo registrado bajo ese número de cupo."
+        "500":
+          description: "Fallo en la comunicación con MariaDB."
+
+    delete:
+      summary: "Remueve físicamente un socio del sistema por su cupo."
+      description: "Borra el registro del taxista siempre y cuando el vehículo no posea deudas u operaciones de cartera vigentes."
+      parameters:
+        - in: path
+          name: cupo
+          required: true
+          schema:
+            type: integer
+          description: "Número de cupo del taxi que se desea dar de baja del sistema."
+      responses:
+        "200":
+          description: "Vehículo y asociado removidos exitosamente del control de la oficina."
+        "400":
+          description: "Restricción de integridad contable - El cupo tiene préstamos activos y su eliminación está bloqueada."
+        "404":
+          description: "El número de cupo provisto no existe o ya fue eliminado."
+        "500":
+          description: "Error interno al procesar la baja del asociado."

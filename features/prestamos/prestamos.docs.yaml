@@ -1,0 +1,116 @@
+paths:
+  /api/prestamos:
+    get:
+      summary: Lista el historial de créditos otorgados.
+      description: Recupera todas las colocaciones de cartera vinculadas con su respectivo socio y cupo vehicular de CooTaxis.
+      responses:
+        "200":
+          description: Listado financiero obtenido con éxito.
+        "500":
+          description: Fallo en red local del servidor.
+    post:
+      summary: Consolida y desembolsa un nuevo crédito.
+      description: El backend calcula automáticamente los intereses y cuotas francesas basándose en el capital, tasa y plazo enviados.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - socio_id
+                - importe_credito
+                - tasa_interes
+                - numero_cuotas
+                - fecha_desembolso
+              properties:
+                socio_id:
+                  type: integer
+                  example: 1
+                importe_credito:
+                  type: number
+                  example: 5000000
+                tasa_interes:
+                  type: number
+                  example: 2.5
+                numero_cuotas:
+                  type: integer
+                  example: 12
+                fecha_desembolso:
+                  type: string
+                  example: "2026-07-05"
+                modalidad:
+                  type: string
+                  example: "Mensual"
+      responses:
+        "201":
+          description: Crédito aprobado y asentado en los libros de XAMPP.
+
+  /api/prestamos/simular:
+    post:
+      summary: Simula y proyecta un plan de amortización francés.
+      description: Retorna el cálculo detallado cuota por cuota al peso sin almacenar nada en la base de datos de la oficina.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - importe_credito
+                - tasa_interes
+                - numero_cuotas
+              properties:
+                importe_credito:
+                  type: number
+                  example: 3000000
+                tasa_interes:
+                  type: number
+                  example: 2.0
+                numero_cuotas:
+                  type: integer
+                  example: 6
+      responses:
+        "200":
+          description: Matriz detallada de amortización francesa calculada con éxito.
+
+  /api/prestamos/{id}:
+    get:
+      summary: Recupera el extracto e historial de pagos de un préstamo.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Extracto consolidado con la tabla de amortización adjunta.
+        "404":
+          description: El préstamo consultado no está registrado.
+
+  /api/prestamos/{id}/estado:
+    put:
+      summary: Cambia la situación contable de un crédito.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - estado
+              properties:
+                estado:
+                  type: string
+                  enum: [PENDIENTE, PAGADO, MORA]
+                  example: "PAGADO"
+      responses:
+        "200":
+          description: Situación contable del préstamo modificada correctamente.

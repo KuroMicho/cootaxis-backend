@@ -1,0 +1,26 @@
+{
+  "name": "cootaxis-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Servidor contable para CooTaxis Mocoa.",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node --watch server.js",
+    "format": "prettier --write .",
+    "lint": "prettier --check .",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "mysql2": "^3.22.5",
+    "swagger-jsdoc": "^6.3.0",
+    "swagger-ui-express": "^5.0.1"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.4"
+  },
+  "author": "CooTaxis Mocoa",
+  "license": "Proprietary"
+}
