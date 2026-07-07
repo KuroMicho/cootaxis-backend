@@ -1,3 +1,4 @@
+import { AuditoriaModel, extractResponsable } from "../auditoria/auditoria.model.js";
 import { SocioModel } from "./socios.model.js";
 
 export const SocioController = {
@@ -13,6 +14,17 @@ export const SocioController = {
       }
 
       const nuevoId = await SocioModel.create(req.body);
+
+      const { responsable_nombre, responsable_rol } = extractResponsable(req.body);
+      await AuditoriaModel.registrar({
+        accion: "CREAR",
+        descripcion: `Registro inicial en el sistema de ${nombres_apellidos} (Cupo #${cupo})`,
+        entidad_id: nuevoId,
+        modulo: "SOCIOS",
+        responsable_nombre,
+        responsable_rol,
+      });
+
       return res.status(201).json({
         id: nuevoId,
         message: "Socio registrado con éxito en el sindicato.",
@@ -34,11 +46,28 @@ export const SocioController = {
   async deleteSocio(req, res) {
     try {
       const cupo = Number(req.params.cupo);
+      const socio = await SocioModel.findByCupo(cupo);
+
+      if (!socio) {
+        return res.status(404).json({ error: "El cupo solicitado no existe o ya fue removido." });
+      }
+
       const exito = await SocioModel.deleteByCupo(cupo);
 
       if (!exito) {
         return res.status(404).json({ error: "El cupo solicitado no existe o ya fue removido." });
       }
+
+      const { responsable_nombre, responsable_rol } = extractResponsable(req.body);
+      await AuditoriaModel.registrar({
+        accion: "ELIMINAR",
+        descripcion: `Se eliminó el registro del Cupo #${cupo}`,
+        entidad_id: socio.id,
+        modulo: "SOCIOS",
+        responsable_nombre,
+        responsable_rol,
+      });
+
       return res.json({ message: "Socio eliminado del sistema de control." });
     } catch (error) {
       console.error("Error en deleteSocio:", error.message);
@@ -84,11 +113,28 @@ export const SocioController = {
   async updateSocio(req, res) {
     try {
       const cupo = Number(req.params.cupo);
+      const socio = await SocioModel.findByCupo(cupo);
+
+      if (!socio) {
+        return res.status(404).json({ error: "No se encontró el número de cupo para actualizar." });
+      }
+
       const exito = await SocioModel.updateByCupo(cupo, req.body);
 
       if (!exito) {
         return res.status(404).json({ error: "No se encontró el número de cupo para actualizar." });
       }
+
+      const { responsable_nombre, responsable_rol } = extractResponsable(req.body);
+      await AuditoriaModel.registrar({
+        accion: "ACTUALIZAR",
+        descripcion: `Se actualizaron datos de contacto del Cupo #${cupo}`,
+        entidad_id: socio.id,
+        modulo: "SOCIOS",
+        responsable_nombre,
+        responsable_rol,
+      });
+
       return res.json({ message: "Expediente de asociado modificado correctamente." });
     } catch (error) {
       console.error("Error en updateSocio:", error.message);

@@ -1,0 +1,74 @@
+paths:
+  /api/auditoria:
+    get:
+      summary: Recupera el historial de auditoría contable.
+      description: Retorna el registro cronológico inmutable de operaciones sobre socios y préstamos, con filtro opcional por módulo.
+      parameters:
+        - in: query
+          name: modulo
+          schema:
+            type: string
+            enum: [SOCIOS, PRESTAMOS]
+          description: Filtra por módulo de origen. Omitir para listar todos.
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+          description: Cantidad máxima de registros a retornar.
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+          description: Desplazamiento para paginación.
+      responses:
+        "200":
+          description: Historial obtenido con éxito.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                    example: 4
+                  registros:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 1
+                        fecha_hora:
+                          type: string
+                          example: "2026-07-06T14:22:00.000Z"
+                        modulo:
+                          type: string
+                          enum: [SOCIOS, PRESTAMOS]
+                          example: "PRESTAMOS"
+                        responsable:
+                          type: object
+                          properties:
+                            nombre:
+                              type: string
+                              example: "Clara M."
+                            rol:
+                              type: string
+                              example: "Contador"
+                        descripcion:
+                          type: string
+                          example: "Se modificó situación del Crédito #4 a PENDIENTE"
+                        accion:
+                          type: string
+                          enum: [CREAR, ACTUALIZAR, ELIMINAR, CAMBIO_ESTADO]
+                          example: "CAMBIO_ESTADO"
+                        entidad_id:
+                          type: integer
+                          nullable: true
+                          example: 4
+        "400":
+          description: Parámetro de filtro inválido.
+        "500":
+          description: Error interno al consultar el historial.

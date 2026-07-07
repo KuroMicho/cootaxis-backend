@@ -1,3 +1,4 @@
+import { AuditoriaModel, extractResponsable, formatImporte } from "../auditoria/auditoria.model.js";
 import { PrestamoModel } from "./prestamos.model.js";
 
 /**
@@ -45,6 +46,59 @@ function liquidarSistemaFrances(principal, tasa, plazo) {
 }
 
 export const PrestamoController = {
+  /** Registra un abono parcial, disminuyendo el saldo total y recalculando */
+  async registrarAbono(req, res) {
+    try {
+      const { monto } = req.body;
+      const id = Number(req.params.id);
+
+      if (!monto || Number(monto) <= 0) {
+        return res.status(400).json({ error: "El monto del abono debe ser mayor que cero." });
+      }
+
+      const prestamo = await PrestamoModel.findById(id);
+      if (!prestamo) {
+        return res.status(404).json({ error: "El préstamo solicitado no está registrado." });
+      }
+
+      const totalPagar = Number(prestamo.total_pagar);
+      const totalAbonadoActual = Number(prestamo.total_abonado ?? 0);
+      const nuevoTotalAbonado = totalAbonadoActual + Number(monto);
+
+      if (nuevoTotalAbonado > totalPagar) {
+        return res.status(400).json({
+          error: `El abono de ${formatImporte(Number(monto))} excede el saldo restante a pagar que es ${formatImporte(totalPagar - totalAbonadoActual)}.`,
+        });
+      }
+
+      let nuevoEstado = prestamo.estado;
+      if (Math.abs(nuevoTotalAbonado - totalPagar) < 0.01 || nuevoTotalAbonado >= totalPagar) {
+        nuevoEstado = "PAGADO";
+      }
+
+      await PrestamoModel.updateAbono(id, nuevoTotalAbonado, nuevoEstado);
+
+      const { responsable_nombre, responsable_rol } = extractResponsable(req.body);
+      await AuditoriaModel.registrar({
+        accion: "ACTUALIZAR",
+        descripcion: `Registro de abono parcial de ${formatImporte(Number(monto))} para el Crédito #${id}. Saldo restante: ${formatImporte(totalPagar - nuevoTotalAbonado)}`,
+        entidad_id: id,
+        modulo: "PRESTAMOS",
+        responsable_nombre,
+        responsable_rol,
+      });
+
+      return res.json({
+        message: "Abono parcial registrado con éxito en los libros contables.",
+        saldo_pendiente: totalPagar - nuevoTotalAbonado,
+        total_abonado: nuevoTotalAbonado,
+      });
+    } catch (error) {
+      console.error("Error en registrarAbono:", error.message);
+      return res.status(500).json({ error: "Error técnico al asentar el abono parcial." });
+    }
+  },
+
   /** Modifica la situación contable del préstamo (PENDIENTE, PAGADO, MORA) */
   async changeStatus(req, res) {
     try {
@@ -59,6 +113,17 @@ export const PrestamoController = {
       if (!exito) {
         return res.status(404).json({ error: "Crédito no localizado." });
       }
+
+      const { responsable_nombre, responsable_rol } = extractResponsable(req.body);
+      await AuditoriaModel.registrar({
+        accion: "CAMBIO_ESTADO",
+        descripcion: `Se modificó situación del Crédito #${req.params.id} a ${estado}`,
+        entidad_id: Number(req.params.id),
+        modulo: "PRESTAMOS",
+        responsable_nombre,
+        responsable_rol,
+      });
+
       return res.json({ message: "Situación contable del préstamo actualizada correctamente." });
     } catch (error) {
       console.error("Error en changeStatus:", error.message);
@@ -104,6 +169,17 @@ export const PrestamoController = {
       };
 
       const id = await PrestamoModel.create(nuevoPrestamo);
+
+      const { responsable_nombre, responsable_rol } = extractResponsable(req.body);
+      await AuditoriaModel.registrar({
+        accion: "CREAR",
+        descripcion: `Asentamiento definitivo del Crédito #${id} por ${formatImporte(Number(importe_credito))}`,
+        entidad_id: id,
+        modulo: "PRESTAMOS",
+        responsable_nombre,
+        responsable_rol,
+      });
+
       return res.status(201).json({
         id,
         message: "Préstamo desembolsado y asentado en los libros contables con éxito.",

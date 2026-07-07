@@ -3,8 +3,21 @@ CREATE DATABASE IF NOT EXISTS cootaxis CHARACTER SET utf8mb4 COLLATE utf8mb4_uni
 USE cootaxis;
 
 -- 2. Eliminar tablas previas en orden estricto debido a las restricciones de llaves foráneas
+DROP TABLE IF EXISTS auditoria;
 DROP TABLE IF EXISTS prestamos;
 DROP TABLE IF EXISTS socios;
+
+-- 2.1. Registro inmutable de auditoría contable
+CREATE TABLE auditoria (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  accion ENUM("CREAR", "ACTUALIZAR", "ELIMINAR", "CAMBIO_ESTADO") NOT NULL,
+  descripcion VARCHAR(500) NOT NULL,
+  entidad_id INT NULL,
+  fecha_hora TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  modulo ENUM("SOCIOS", "PRESTAMOS") NOT NULL,
+  responsable_nombre VARCHAR(100) NOT NULL,
+  responsable_rol VARCHAR(50) NOT NULL
+) ENGINE=InnoDB;
 
 -- 3. Crear Tabla de Asociados / Socios
 CREATE TABLE socios (
@@ -33,5 +46,6 @@ CREATE TABLE prestamos (
   socio_id INT NOT NULL,
   tasa_interes DECIMAL(5, 2) NOT NULL,
   total_pagar DECIMAL(12, 2) NOT NULL,
+  total_abonado DECIMAL(12, 2) DEFAULT 0.00,
   FOREIGN KEY (socio_id) REFERENCES socios(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB;

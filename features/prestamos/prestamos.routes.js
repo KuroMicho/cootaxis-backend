@@ -10,5 +10,6 @@ router.get("/:id", PrestamoController.getPrestamoById);
 router.post("/", PrestamoController.createPrestamo);
 router.post("/simular", PrestamoController.simulateAmortizacion);
 router.put("/:id/estado", PrestamoController.changeStatus);
+router.post("/:id/abono", PrestamoController.registrarAbono);
 
 export default router;

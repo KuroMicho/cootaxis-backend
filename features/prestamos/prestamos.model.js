@@ -82,6 +82,7 @@ export const PrestamoModel = {
         p.importe_cuota,
         p.interes_generado,
         p.total_pagar,
+        p.total_abonado,
         p.fecha_desembolso,
         p.estado,
         p.fecha_registro
@@ -113,6 +114,7 @@ export const PrestamoModel = {
         p.importe_cuota,
         p.interes_generado,
         p.total_pagar,
+        p.total_abonado,
         p.fecha_desembolso,
         p.estado,
         p.fecha_registro
@@ -133,6 +135,21 @@ export const PrestamoModel = {
    */
   async updateEstado(id, estado) {
     const [result] = await db.query("UPDATE prestamos SET estado = ? WHERE id = ?", [estado, id]);
+    return result.affectedRows > 0;
+  },
+
+  /**
+   * Registra un abono acumulado y actualiza la situación del préstamo.
+   * @param {number} id - Identificador del préstamo.
+   * @param {number} total_abonado - Acumulado de pagos.
+   * @param {string} estado - Nueva situación contable.
+   * @returns {Promise<boolean>}
+   */
+  async updateAbono(id, total_abonado, estado) {
+    const [result] = await db.query(
+      "UPDATE prestamos SET total_abonado = ?, estado = ? WHERE id = ?",
+      [total_abonado, estado, id]
+    );
     return result.affectedRows > 0;
   },
 };
